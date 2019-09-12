@@ -1,4 +1,4 @@
 # Berrick-RobotHead
 
---- Code and electric scheme will released soon ---
+--- Code and electric scheme will be released soon ---
 
