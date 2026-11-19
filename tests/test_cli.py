@@ -50,3 +50,15 @@ def test_run_loop_with_mock_hardware(tmp_path, monkeypatch):
 
 def test_parser():
     assert cli.build_parser().parse_args(["calibrate", "pan"]).servo == "pan"
+
+
+def test_missing_config_is_friendly(tmp_path, capsys):
+    assert cli.main(["-c", str(tmp_path / "nope.toml"), "download-model"]) == 2
+    assert "not found" in capsys.readouterr().err
+
+
+def test_invalid_config_is_friendly(tmp_path, capsys):
+    bad = tmp_path / "bad.toml"
+    bad.write_text("[servos]\nbogus = 1\n")
+    assert cli.main(["-c", str(bad), "download-model"]) == 2
+    assert "unknown config key 'servos.bogus'" in capsys.readouterr().err

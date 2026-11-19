@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import logging
+import os
 import signal
 import sys
 import threading
@@ -13,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import __version__
-from .config import Config, ServosConfig, load_config
+from .config import Config, ConfigError, ServosConfig, load_config
 
 log = logging.getLogger("berrick")
 
@@ -266,7 +267,19 @@ def main(argv: list[str] | None = None) -> int:
         datefmt="%H:%M:%S",
     )
     signal.signal(signal.SIGTERM, _raise_interrupt)
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config)
+    except FileNotFoundError:
+        print(f"error: config file '{args.config}' not found.", file=sys.stderr)
+        example = Path(__file__).resolve().parents[2] / "config" / "berrick.example.toml"
+        if example.is_file():
+            print(f"create it with:  cp {os.path.relpath(example)} "
+                  f"{args.config}", file=sys.stderr)  # fmt: skip
+        print("or omit -c to use the built-in defaults.", file=sys.stderr)
+        return 2
+    except (ConfigError, ValueError) as exc:  # tomllib.TOMLDecodeError is a ValueError
+        print(f"error: invalid config '{args.config}': {exc}", file=sys.stderr)
+        return 2
     return args.func(args, cfg)
 
 
