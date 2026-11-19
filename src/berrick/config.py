@@ -125,6 +125,30 @@ class BehaviorConfig:
 
 
 @dataclass
+class SimConfig:
+    """MuJoCo simulation (`berrick sim`). Angles follow the default `invert` wiring."""
+
+    person_motion: str = "sweep"  # "sweep" | "static" | "manual"
+    person_distance: float = 0.8  # m in front of the robot
+    person_height: float = 1.12  # m, face centre (robot camera is at ~1.0 m)
+    person_offset: float = 0.25  # m, lateral offset for "static"
+    sweep_amplitude: float = 0.35  # m
+    sweep_period_s: float = 12.0
+    leave_every_s: float = 30.0  # 0 = never walk out of view
+    leave_for_s: float = 5.0
+    face_texture: str = ""  # photo of a face -> lets the real detector run on renders
+    detector: str = "ground_truth"  # "ground_truth" | "real" (uses [detector])
+    noise_px: float = 2.0  # ground-truth detector jitter
+    miss_rate: float = 0.05  # ground-truth detector false-negative probability
+    camera_fovy_deg: float = 48.8  # Raspberry Pi Camera v2
+    deg_per_us: float = 0.09  # 180° over 2000 µs, standard hobby servo
+    mouth_deg_per_us: float = 0.035
+    view_width: int = 640
+    view_height: int = 480
+    seed: int = 0
+
+
+@dataclass
 class Config:
     camera: CameraConfig = field(default_factory=CameraConfig)
     detector: DetectorConfig = field(default_factory=DetectorConfig)
@@ -133,6 +157,7 @@ class Config:
     tilt: AxisConfig = field(default_factory=lambda: AxisConfig(enabled=False))
     leds: LedConfig = field(default_factory=LedConfig)
     behavior: BehaviorConfig = field(default_factory=BehaviorConfig)
+    sim: SimConfig = field(default_factory=SimConfig)
     preview: bool = True
     log_dir: str = ""
 
