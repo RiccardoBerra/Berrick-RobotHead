@@ -1,0 +1,12 @@
+# Run on a laptop with a webcam and no hardware: `berrick -c config/desktop.toml run`
+[camera]
+backend = "opencv"
+device = 0
+hflip = true
+
+[servos]
+backend = "mock"
+
+[leds]
+backend = "mock"
+wipe_ms = 0

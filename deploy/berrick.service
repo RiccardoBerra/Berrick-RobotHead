@@ -1,0 +1,18 @@
+# Start Berrick at boot (headless).
+#   sudo cp deploy/berrick.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now berrick
+# Adjust User and paths to your installation.
+[Unit]
+Description=Berrick robotic head
+After=network.target pigpiod.service
+Wants=pigpiod.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/Berrick-RobotHead
+ExecStart=/home/pi/Berrick-RobotHead/.venv/bin/berrick -c config/berrick.toml run --no-preview --log-dir logs
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

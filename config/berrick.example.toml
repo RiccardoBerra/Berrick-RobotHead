@@ -1,0 +1,85 @@
+# Berrick configuration — copy to config/berrick.toml and edit.
+# Every key is optional: omitted values use the defaults of the original
+# 2019 robot (see src/berrick/config.py). Pulse widths are in microseconds.
+
+preview = true          # show the camera window (needs a desktop session)
+log_dir = ""            # e.g. "logs" to write CSV event logs
+
+[camera]
+backend = "picamera2"   # "picamera2" (Pi camera) | "opencv" (USB webcam)
+width = 320
+height = 240
+fps = 30
+hflip = false
+vflip = false           # set true if the camera is mounted upside down
+
+[detector]
+backend = "yunet"       # "yunet" (DNN, robust) | "haar" (2019 behaviour)
+model_path = "models/face_detection_yunet_2023mar.onnx"
+score_threshold = 0.7
+min_face_size = 30
+fallback_to_haar = true
+
+[servos]
+backend = "pigpio"      # "pigpio" (Pi 1-4, best) | "gpiozero" (any Pi, incl. Pi 5) | "mock"
+update_hz = 50
+
+[servos.pan]            # left/right neck rotation
+pin = 27
+min_us = 1200
+max_us = 2400
+home_us = 1850
+max_speed_us_s = 800
+
+[servos.tilt]           # neck up/down
+enabled = false
+pin = 22
+min_us = 800
+max_us = 2000
+home_us = 1350
+
+[servos.mouth]          # home = closed (2100), min = open (1100)
+pin = 17
+min_us = 1100
+max_us = 2100
+home_us = 2100
+
+[servos.eye_x]          # optional, eyes follow the face directly
+enabled = false
+pin = 19
+min_us = 1000
+max_us = 1700
+home_us = 1200
+
+[servos.eye_y]
+enabled = false
+pin = 26
+min_us = 600
+max_us = 1800
+home_us = 1200
+
+[pan]                   # closed-loop control of the pan servo
+enabled = true
+invert = true           # flip if the head turns away from the face
+deadband = 0.08         # ignore offsets smaller than 8% of half the frame
+pid = { kp = 500.0, ki = 0.0, kd = 20.0, output_limit = 600.0 }
+
+[tilt]
+enabled = false
+invert = true
+deadband = 0.10
+pid = { kp = 400.0, ki = 0.0, kd = 20.0, output_limit = 500.0 }
+
+[leds]                  # "light-based gazing" LED ring (SK6812 RGBW)
+backend = "neopixel_spi" # "neopixel_spi" (any Pi, GPIO10) | "rpi_ws281x" | "mock" | "none"
+count = 14
+rgbw = true
+brightness = 0.7
+engaged_color = [255, 0, 0, 0]
+idle_color = [0, 0, 0, 0]
+
+[behavior]
+acquire_frames = 3       # consecutive detections before engaging
+lost_timeout_s = 1.0     # face missing this long -> disengage
+return_home_after_s = 5.0
+greet_with_mouth = false
