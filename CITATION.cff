@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use Berrick in your research, please cite the paper below."
+title: "Berrick-RobotHead"
+authors:
+  - family-names: Berra
+    given-names: Riccardo
+repository-code: "https://github.com/RiccardoBerra/Berrick-RobotHead"
+preferred-citation:
+  type: conference-paper
+  title: "Berrick: a low-cost robotic head platform for human-robot interaction"
+  authors:
+    - family-names: Berra
+      given-names: Riccardo
+    - family-names: Setti
+      given-names: Francesco
+    - family-names: Cristani
+      given-names: Marco
+  collection-title: "2019 IEEE International Conference on Systems, Man and Cybernetics (SMC)"
+  conference:
+    name: "IEEE SMC 2019"
+    city: Bari
+    country: IT
+  year: 2019
+  start: 559
+  end: 566
+  doi: "10.1109/SMC.2019.8913932"
