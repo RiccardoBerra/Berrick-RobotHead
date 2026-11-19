@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MUJOCO_GL: osmesa  # software offscreen rendering for the simulation tests
+      PYOPENGL_PLATFORM: osmesa
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.11"  # Raspberry Pi OS Bookworm
+            opencv: "opencv-python-headless>=4.8,<5"
+          - python-version: "3.13"  # Raspberry Pi OS Trixie
+            opencv: "opencv-python-headless>=5"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: sudo apt-get update && sudo apt-get install -y libosmesa6
+      - run: pip install -e ".[dev]" "${{ matrix.opencv }}"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: berrick download-model
+      - run: pytest -q

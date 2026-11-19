@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "berrick"
+version = "2.0.0"
+description = "Berrick: a low-cost robotic head platform for human-robot interaction"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Riccardo Berra" }]
+keywords = ["robotics", "hri", "raspberry-pi", "face-tracking", "opencv"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+]
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+# Desktop development (webcam + mock servos). On the Pi prefer apt's python3-opencv
+# or this extra inside a venv created with --system-site-packages.
+opencv = ["opencv-python>=4.8"]
+# Raspberry Pi hardware (picamera2 / libcamera come from apt, see README).
+pi = [
+    "opencv-python>=4.8",
+    "gpiozero>=2.0",
+    "adafruit-circuitpython-neopixel-spi>=1.0",
+]
+pigpio = ["pigpio>=1.78"]
+# MuJoCo simulation, runs on macOS/Linux/Windows without a robot.
+sim = ["mujoco>=3.2", "opencv-python>=4.8"]
+ws281x = ["rpi-ws281x>=5.0"]
+dev = ["pytest>=8", "ruff>=0.6", "mujoco>=3.2"]  # plus an OpenCV build: [opencv] or [sim]
+
+[project.scripts]
+berrick = "berrick.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/RiccardoBerra/Berrick-RobotHead"
+Paper = "https://doi.org/10.1109/SMC.2019.8913932"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/berrick"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["legacy"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
