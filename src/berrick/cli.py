@@ -168,6 +168,50 @@ def cmd_download_model(args: argparse.Namespace, cfg: Config) -> int:
     return 0
 
 
+def cmd_sim(args: argparse.Namespace, cfg: Config) -> int:
+    try:
+        from .sim import run_sim
+    except ImportError as exc:
+        print(f"simulation needs MuJoCo: pip install -e '.[sim]' ({exc})", file=sys.stderr)
+        return 1
+
+    if args.twin:
+        cfg.camera.backend = "opencv"
+    if args.face:
+        cfg.sim.face_texture = args.face
+        cfg.sim.detector = "real"
+    if args.real_detector:
+        cfg.sim.detector = "real"
+    if args.person:
+        cfg.sim.person_motion = args.person
+    for name in args.enable or []:
+        getattr(cfg.servos, name).enabled = True
+        if name == "tilt":
+            cfg.tilt.enabled = True
+
+    hist = run_sim(
+        cfg,
+        duration=args.duration,
+        preview=not args.headless,
+        realtime=not args.fast,
+        twin=args.twin,
+        record=args.record,
+        log_dir=args.log_dir or (cfg.log_dir or None),
+    )
+    if hist.t:
+        import math
+
+        engaged = sum(hist.engaged) / len(hist.t)
+        errs = [abs(e) for e, g in zip(hist.error_x, hist.engaged, strict=True)
+                if g and not math.isnan(e)]  # fmt: skip
+        mean = sum(errs) / len(errs) if errs else float("nan")
+        print(f"simulated {hist.t[-1]:.1f}s: engaged {engaged:.0%} of the time, "
+              f"mean |pan error| while engaged {mean:.3f}")  # fmt: skip
+    if args.record:
+        print(f"video saved to {args.record}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="berrick", description="Berrick robotic head controller")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -190,6 +234,22 @@ def build_parser() -> argparse.ArgumentParser:
     cal = sub.add_parser("calibrate", help="move one servo by hand to find its limits")
     cal.add_argument("servo", choices=["pan", "tilt", "mouth", "eye_x", "eye_y"])
     cal.set_defaults(func=cmd_calibrate)
+
+    sim = sub.add_parser("sim", help="simulate the robot in MuJoCo (no hardware needed)")
+    sim.add_argument("--person", choices=["sweep", "static", "manual"], help="person motion")
+    sim.add_argument("--enable", nargs="+", choices=["tilt", "eye_x", "eye_y"],
+                     help="enable extra servos")  # fmt: skip
+    sim.add_argument("--face", help="face photo to texture the virtual person (uses YuNet)")
+    sim.add_argument("--real-detector", action="store_true",
+                     help="run [detector] on rendered frames instead of ground truth")  # fmt: skip
+    sim.add_argument("--twin", action="store_true",
+                     help="digital twin: your webcam drives the virtual robot")  # fmt: skip
+    sim.add_argument("--duration", type=float, help="stop after N simulated seconds")
+    sim.add_argument("--headless", action="store_true", help="no window")
+    sim.add_argument("--fast", action="store_true", help="run faster than real time")
+    sim.add_argument("--record", help="save the view to an .mp4 file")
+    sim.add_argument("--log-dir", help="write CSV event logs to this directory")
+    sim.set_defaults(func=cmd_sim)
 
     dl = sub.add_parser("download-model", help="download the YuNet face-detection model")
     dl.add_argument("--dest", help="output path (default: detector.model_path)")
