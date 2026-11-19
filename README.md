@@ -28,6 +28,8 @@ and Raspberry Pi OS. The original 2019 code used in the paper is preserved in
 - All calibration in one **TOML config file**; interactive servo calibration tool.
 - CSV logs of detections and engagement episodes; the keyboard HRI experiment from
   the paper is built in.
+- **3D simulation in MuJoCo** (macOS, Linux, Windows): the real tracker drives a
+  virtual Berrick looking at a virtual person — no robot needed.
 - Runs on a laptop with a webcam and mock hardware for development.
 - Tests, linting and CI; systemd unit to start at boot.
 
@@ -154,13 +156,57 @@ sudo systemctl daemon-reload && sudo systemctl enable --now berrick
 journalctl -u berrick -f                        # follow the logs
 ```
 
-### Develop on a laptop (no robot needed)
+### Simulate on a Mac (no robot needed)
+
+![Berrick in the MuJoCo simulator](docs/images/sim.jpg)
+
+`berrick sim` runs the **same tracker, PID and state machine** as the robot against
+a MuJoCo model of Berrick (pan, tilt, eyes, jaw, 2×7 LED rings) and a virtual person
+sitting in front of it. Joint ranges come from your servo limits, so the config you
+tune in simulation is the one you deploy.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,opencv]"
+pip install -e ".[sim]"
+berrick download-model                       # only needed for --real-detector/--face
+berrick sim                                  # person sweeps left/right and walks away
+berrick sim --enable tilt eye_x eye_y        # all axes
+berrick sim --person manual                  # move the person yourself (a/d w/s r/f)
+berrick -c config/berrick.toml sim           # test your own config / PID gains
+```
+
+Window: left = free 3D view, right = what the robot's camera sees with the detection
+overlay. Keys: `space` show/hide the person, `1`/`2`/`3` sweep/static/manual,
+`a d w s r f` move the person, `j l i k u o` orbit/zoom the view, `q` quit.
+
+Perception modes:
+
+| Mode | What detects the face |
+|---|---|
+| default | ground truth projected into the robot camera, with `sim.noise_px` jitter and `sim.miss_rate` misses — fast, isolates the control loop |
+| `--real-detector` | the real YuNet/Haar detector on the rendered frames |
+| `--face photo.jpg` | as above, with your portrait photo (3:4 crop) on the person |
+| `--twin` | **digital twin**: your Mac's webcam + real detector drive the 3D robot |
+
+Batch / tuning runs:
+
+```bash
+berrick sim --headless --fast --duration 60            # prints engagement % and mean error
+berrick sim --headless --fast --duration 30 --record out.mp4 --log-dir logs
+```
+
+Simulation limits: servos are ideal position actuators (no backlash, no
+load-dependent speed), the camera has no latency or motion blur, and frames come at
+exactly `camera.fps`. Use it to check directions, ranges and behaviour, then fine
+tune the PID on the real robot.
+
+### Develop on a laptop with a webcam
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev,sim]"
 berrick download-model
-berrick -c config/desktop.toml run      # webcam + mock servos/LEDs
+berrick -c config/desktop.toml run      # webcam + mock servos/LEDs (no 3D view)
 pytest && ruff check . && ruff format --check .
 ```
 
@@ -179,6 +225,7 @@ src/berrick/
   leds.py        neopixel_spi / rpi_ws281x / mock LED ring
   tracker.py     engagement state machine and gaze control, CSV event log
   experiment.py  keyboard HRI experiment
+  sim/           MuJoCo model, world, sim backends and `berrick sim` runner
 config/          example and desktop configs
 deploy/          systemd unit
 legacy/          original 2019 code and experiment data
@@ -195,6 +242,9 @@ tests/           pytest suite (no hardware needed)
 | `OpenCV 5.x has no Haar cascades` | use `detector.backend = "yunet"`, or `pip install "opencv-python<5"` |
 | Servos jitter with gpiozero | software PWM; use pigpio on Pi 1–4 or a PCA9685 board |
 | LEDs don't light | enable SPI (`raspi-config`), check the data wire is on GPIO10 and the colour order (`rgbw`) |
+| `simulation needs MuJoCo` | `pip install -e ".[sim]"` |
+| Sim on headless Linux: GL errors | `export MUJOCO_GL=egl` (GPU) or `osmesa` (CPU, `apt install libosmesa6`) |
+| `cv2.imshow` not implemented | `opencv-python-headless` is installed: `pip uninstall opencv-python-headless && pip install opencv-python` |
 | `cannot open camera device 0` (desktop) | allow camera access for your terminal, or set `camera.device` |
 
 ## Citation
